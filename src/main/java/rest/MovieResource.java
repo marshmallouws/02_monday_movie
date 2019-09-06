@@ -6,6 +6,7 @@ import dto.MovieDTO;
 import entities.Movie;
 import utils.EMF_Creator;
 import facades.MovieFacade;
+import java.util.List;
 import javax.persistence.EntityManagerFactory;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -50,7 +51,23 @@ public class MovieResource {
     public String getMovieFromId(@PathParam("id") Long id) {
         MovieDTO m = FACADE.findMovie(id);
         return new Gson().toJson(m);
-    } 
+    }
+    
+    @Path("/all")
+    @GET
+    @Produces({MediaType.APPLICATION_JSON})
+    public String getAllMovies() {
+        List<MovieDTO> m = FACADE.getAllMovies();
+        return new Gson().toJson(m);
+    }
+    
+    @Path("/name/{name}")
+    @GET
+    @Produces({MediaType.APPLICATION_JSON})
+    public String getMovieFromName(@PathParam("name") String name) {
+        List<MovieDTO> m = FACADE.findMovieByName(name);
+        return new Gson().toJson(m);
+    }
     
     
     /*

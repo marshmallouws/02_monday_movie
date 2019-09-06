@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>All movies</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>
+            function getMovies() {
+
+                var url = "http://localhost:8080/jpareststarter/api/movies/all";
+                fetch(url)
+                        .then(res => res.json()) //in flow1, just do it
+                        .then(data => {
+
+                            var toHtml = function (array) {
+                                var res = "<table><tr>";
+                                var keys = Object.keys(array[0]);
+                                var keysp = keys.map(key => "<th>" + key + "</th>").join("");
+                                res += keysp;
+                                res += "</tr>";
+
+                                for (i = 0; i < array.length; i++) {
+                                    res += "<tr>";
+                                    var val = Object.values(array[i]);
+                                    var vals = val.map(v => "<td>" + v + "</td>").join("");
+                                    res += vals;
+                                    res += "</tr>";
+                                }
+                                res += "</table>";
+
+                                return res;
+                            };
+
+                            document.getElementById("data").innerHTML = toHtml(data);
+                        });
+
+            }
+            // Doesn't handle errors when fetching non-exsisting movies by id from the database.
+            // Furthermore, it should check for negative ids.
+            function getMovieById(number) {
+
+                var url = "http://localhost:8080/jpareststarter/api/movies/" + number;
+                fetch(url)
+                        .then(res => res.json()) //in flow1, just do it
+                        .then(data => {
+                            
+                            var toHtml = function (obj) {
+                                var res = "<table><tr>";
+                                var keys = Object.keys(obj);
+                                var keysp = keys.map(key => "<th>" + key + "</th>").join("");
+                                res += keysp;
+                                res += "</tr>";
+
+                                res += "<tr>";
+                                var val = Object.values(obj);
+                                var vals = val.map(v => "<td>" + v + "</td>").join("");
+                                res += vals;
+                                res += "</tr>";
+
+                                res += "</table>";
+
+                                return res;
+                            };
+
+                            document.getElementById("data").innerHTML = toHtml(data);
+                        });
+
+
+            }
+
+        </script>
+    </head>
+    <body>
+        <button onclick="getMovies()">Get all movies</button>
+
+        <form name="getIdForm">
+            <input type="number" name="lname" placeholder="search for id"><br>
+            <input type="button" value="Find movie" onclick="getMovieById(getIdForm.lname.value)">
+        </form>
+        <p id="data"></p>
+    </body>
+</html>

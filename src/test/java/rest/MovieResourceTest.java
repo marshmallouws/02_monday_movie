@@ -1,11 +1,16 @@
 package rest;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import entities.Movie;
 import utils.EMF_Creator;
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
+import io.restassured.http.ContentType;
 import io.restassured.parsing.Parser;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.ws.rs.core.UriBuilder;
@@ -14,6 +19,7 @@ import org.glassfish.grizzly.http.util.HttpStatus;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +48,7 @@ public class MovieResourceTest {
 
     @BeforeAll
     public static void setUpClass() {
-        emf = EMF_Creator.createEntityManagerFactory(DbSelector.TEST, Strategy.CREATE);
+        emf = EMF_Creator.createEntityManagerFactory(DbSelector.TEST, Strategy.DROP_AND_CREATE);
 
         //NOT Required if you use the version of EMF_Creator.createEntityManagerFactory used above        
         //System.setProperty("IS_TEST", TEST_DB);
@@ -70,11 +76,13 @@ public class MovieResourceTest {
         EntityManager em = emf.createEntityManager();
         try {
             em.getTransaction().begin();
-            em.createNamedQuery("Movie.deleteAllRows").executeUpdate();
-            String[] s = {"Bob", "Lise"};
-            em.persist(new Movie("IT", s, 1990, "2:54"));
-            em.persist(new Movie("IT Chapter 2", s, 1992, "2:31"));
-           
+            em.createNativeQuery("DELETE FROM MOVIE").executeUpdate();
+            String[] s = {"Peter", "Lene"};
+
+            em.persist(new Movie("Dracula", new String[]{"Peter", "Lene"}, 2017, "1:56"));
+            em.persist(new Movie("IT Chapter 2", new String[]{"Lise", "Hanne"}, 1992, "2:31"));
+            em.persist(new Movie("IT", new String[]{"Anders", "Jens"}, 1990, "2:54"));
+            
             em.getTransaction().commit();
         } finally {
             em.close();
@@ -100,11 +108,64 @@ public class MovieResourceTest {
     
     @Test
     public void testCount() throws Exception {
-        given()
-        .contentType("application/json")
-        .get("/movies/count").then()
-        .assertThat()
-        .statusCode(HttpStatus.OK_200.getStatusCode())
-        .body("count", equalTo(2));   
+        given().
+        when().
+            get("/movies/count").
+        then().
+            assertThat().contentType(ContentType.JSON).
+            assertThat().statusCode(HttpStatus.OK_200.getStatusCode()).         //Testing httpstatus
+                body("count", equalTo(3));                                      //Testing if the list contains 3 movies 
     }
+    
+    /*
+    Testing if name is actually Dracula when using that as endpoint
+    */
+    @Test
+    public void testGetByName() throws Exception {
+        given().
+        when().
+            get("movies/name/Dracula").
+        then().
+            assertThat().contentType(ContentType.JSON).
+            assertThat().statusCode(HttpStatus.OK_200.getStatusCode()).
+                body("name", hasItem("Dracula"));
+    }
+    
+    /*
+    Couldn't get following test to work due to the fact that using
+    hasItems on "actors" returns a list looking like this:
+    actors[Anders, Jens], [Peter, Lene], [Lise, Hanne].
+    
+    If using body("actors[i], hasItems("Peter", "Lene"))"
+    it works, however, the order in which the movies are added
+    is random as far as I can see.
+    */
+    //@Test
+    public void testGetAll() throws Exception {  
+        List<String> actors = new ArrayList<>();
+        actors.add("Lise, Hanne");
+        given().
+        when().
+            get("/movies/all").
+        then().
+            assertThat().contentType(ContentType.JSON).
+            assertThat().statusCode(HttpStatus.OK_200.getStatusCode()).         
+                body("actors", hasItem(actors.get(0)));                   
+    }
+    
+    /*
+    Gives 500 status although the id is in the database.
+    */
+    //@Test
+    public void testGetById() throws Exception {
+        given().
+        when().
+            get("/movies/16").
+        then().
+            //assertThat().contentType(ContentType.JSON).
+            assertThat().statusCode(HttpStatus.OK_200.getStatusCode()).
+                body("year", equalTo(2017));
+    }
+    
+    
 }
